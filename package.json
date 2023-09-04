@@ -1,0 +1,14 @@
+{
+  "name": "dh-util",
+  "version": "1.0.0",
+  "description": "A Datahub metadata utility",
+  "main": "dh-util.go",
+  "dev": {
+    "containerize": false,
+    "ldflag": {
+      "main.name": "package.name",
+      "main.version": "package.version",
+      "main.description": "package.description"
+    }
+  }
+}
