@@ -54,7 +54,11 @@ SELECT
   as key,
   kcu.ordinal_position as key_position,
   LOWER(tco.constraint_type) as key_type,
-  tco.constraint_name as key_name
+  tco.constraint_name as key_name,
+  CASE
+    WHEN t.table_type = 'VIEW' THEN (SELECT trim(definition) FROM pg_views WHERE schemaname = c.table_schema AND viewname = c.table_name)
+    ELSE NULL
+  END as "definition"
 FROM information_schema.tables t
   LEFT JOIN information_schema.columns c
     ON t.table_catalog = c.table_catalog

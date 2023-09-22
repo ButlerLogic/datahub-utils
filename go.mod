@@ -5,6 +5,7 @@ go 1.21.0
 require (
 	github.com/alecthomas/kong v0.8.0
 	github.com/jackc/pgx/v5 v5.4.3
+	github.com/mattn/go-sqlite3 v1.14.17
 	gopkg.in/yaml.v3 v3.0.1
 )
 

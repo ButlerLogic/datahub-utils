@@ -42,3 +42,11 @@ func InSlice[V comparable](item V, slice []V) bool {
 	}
 	return false
 }
+
+func Map[V comparable](slice []V, fn func(el V) V) []V {
+	for i, value := range slice {
+		slice[i] = fn(value)
+	}
+
+	return slice
+}

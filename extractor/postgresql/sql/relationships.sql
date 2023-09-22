@@ -53,7 +53,7 @@ FROM information_schema.columns col
     AND pc.conname = kcu.constraint_name
   LEFT JOIN pg_catalog.pg_description pd
   ON pc.oid = pd.objoid
-WHERE col.table_schema not in ('information_schema','pg_catalog')
+WHERE [SCHEMA_FILTER]
   AND kcu.constraint_name IS NOT NULL
 ORDER BY
   col.table_schema,
