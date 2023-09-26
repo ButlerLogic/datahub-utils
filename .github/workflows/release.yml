@@ -61,7 +61,7 @@ jobs:
 
       - name: Build Windows
         if: steps.create_release.outputs.id != ''
-        run: mkdir -p && qgo build -o /dist/windows/dh-util.exe
+        run: mkdir -p /dist/windows && qgo build -o /dist/windows/dh-util.exe
         env:
           GOOS: windows
 
