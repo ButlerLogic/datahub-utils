@@ -78,7 +78,7 @@ jobs:
           GOOS: linux
 
       - name: Temp
-        run: ls -l ./bin/windows && ls -l ./bin/darwin && ls -l ./bin/linux
+        run: ls -l /dist/windows && ls -l /dist/darwin && ls -l /dist/linux
 
       - name: Rollback Release
         if: failure() && steps.create_release.outputs.id != ''
