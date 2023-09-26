@@ -1,5 +1,6 @@
 .*
 !.gitignore
+!.github
 *.exe
 dh-config.json
 *.yml
