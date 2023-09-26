@@ -62,19 +62,19 @@ jobs:
       - name: Build Windows
         if: steps.create_release.outputs.id != ''
         run: qgo build -o ./bin/windows
-        with:
+        env:
           GOOS: windows
 
       - name: Build macOS
         if: steps.create_release.outputs.id != ''
         run: qgo build -o ./bin/darwin
-        with:
+        env:
           GOOS: darwin
 
       - name: Build Linux
         if: steps.create_release.outputs.id != ''
         run: qgo build -o ./bin/linux
-        with:
+        env:
           GOOS: linux
 
       - name: Temp
