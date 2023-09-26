@@ -60,20 +60,20 @@ jobs:
         if: steps.create_release.outputs.id != ''
 
       - name: Build Windows
-        if: steps.create_release.outputs.id != ''
-        run: mkdir -p ./bin/windows && qgo build -o ./bin/windows
+        if: steps.create_release.outputs.id != '' ../../dh-util.go
+        run: mkdir -p ./bin/windows && cd ./bin/windows && qgo build
         env:
           GOOS: windows
 
       - name: Build macOS
         if: steps.create_release.outputs.id != ''
-        run: mkdir -p ./bin/darwin && qgo build -o ./bin/darwin
+        run: mkdir -p ./bin/darwin && cd ./bin/darwin && qgo build ../../dh-util.go
         env:
           GOOS: darwin
 
       - name: Build Linux
         if: steps.create_release.outputs.id != ''
-        run: mkdir -p ./bin/linux && qgo build -o ./bin/linux
+        run: mkdir -p ./bin/linux && cd ./bin/linux && qgo build ../../dh-util.go
         env:
           GOOS: linux
 
