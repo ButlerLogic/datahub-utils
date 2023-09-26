@@ -61,19 +61,19 @@ jobs:
 
       - name: Build Windows
         if: steps.create_release.outputs.id != ''
-        run: mkdir -p /dist/windows && qgo build -o /dist/windows/dh-util.exe
+        run: qgo build
         env:
           GOOS: windows
 
       - name: Build macOS
         if: steps.create_release.outputs.id != ''
-        run: mkdir -p /dist/darwin && qgo build -o /dist/darwin/dh-util
+        run: qgo build
         env:
           GOOS: darwin
 
       - name: Build Linux
         if: steps.create_release.outputs.id != ''
-        run: mkdir -p /dist/linux && qgo build -o /dist/linux/dh-util
+        run: qgo build
         env:
           GOOS: linux
 
