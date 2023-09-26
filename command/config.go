@@ -24,6 +24,7 @@ type ExtractorConfiguration struct {
 	Source     string   `yaml:"datahub_source"`
 	Outfile    string   `yaml:"outfile"`
 	DryRun     bool     `yaml:"dryrun"`
+	System     string   `yaml:"system_id"`
 	Max        int      `yaml:"max"`
 }
 
@@ -63,6 +64,10 @@ func (c ExtractorConfiguration) Apply(e *Extractor) error {
 
 	if e.Schemas == nil {
 		e.Schemas = c.Schemas
+	}
+
+	if e.System == util.EmptyString {
+		e.System = c.System
 	}
 
 	if e.Expand == nil {

@@ -251,18 +251,7 @@ func (a *Archive) UpsertItems(srctype string, items []*doc.Item) error {
 
 	sql := []string{}
 	for _, item := range items {
-		var keynm string
-		ispk := false
-
-		if item.Key != nil {
-			if item.Key.IsPrimary() {
-				ispk = true
-			}
-
-			if item.Key.Name != util.EmptyString {
-				keynm = item.Key.Name
-			}
-		}
+		ispk, keynm := item.IsPrimaryKey()
 
 		var nullable bool
 		if item.Nullable != util.EmptyBool {
@@ -547,7 +536,8 @@ func (a *Archive) DiffItems(setdiff *Diff) (*Diff, error) {
 						Physical: record["physical_nm"].(string),
 					},
 					// Type: getType(),
-					UDTType:  record["type"].(string),
+					Type: record["type"].(string),
+					// UDTType:  record["type"].(string),
 					Nullable: record["nullable"].(bool),
 					FQDN:     set.ID() + "." + record["physical_nm"].(string),
 				})
@@ -582,11 +572,11 @@ func (a *Archive) DiffItems(setdiff *Diff) (*Diff, error) {
 							t = "foreign"
 						}
 
-						item.Key = &doc.Key{
+						item.UpsertKey(&doc.Key{
 							Name:  k["name"].(string),
 							Type:  t,
 							Items: []string{item.Name.Physical},
-						}
+						})
 					}
 				}
 
@@ -665,10 +655,10 @@ func (a *Archive) DiffItems(setdiff *Diff) (*Diff, error) {
 							keytype = "primary"
 						}
 
-						item.Key = &doc.Key{
+						item.UpsertKey(&doc.Key{
 							Name: record["key_nm"].(string),
 							Type: keytype,
-						}
+						})
 					}
 
 					d.Delete(item, item.ID())
@@ -691,9 +681,12 @@ func (a *Archive) DiffItems(setdiff *Diff) (*Diff, error) {
 		return d, err
 	}
 
+	var emptykey *doc.Key
+
 	rs.ForEach(func(record map[string]interface{}) error {
 		if !util.InSlice[string](record["dataset_id"].(string), deadsets) {
 			set, err := a.getSet(record)
+			set.Id = record["set_id"].(string)
 			if err == nil {
 				item, err := set.GetItem(record["physical_nm"].(string))
 				if err == nil {
@@ -721,18 +714,19 @@ func (a *Archive) DiffItems(setdiff *Diff) (*Diff, error) {
 						}
 
 						if (record["pk_changed"].(int64) == 1 && record["pk_database"] != nil) || (record["keyname_changed"].(int64) == 1 && record["keyname_database"] != nil) {
-							if item.Key == nil {
-								item.Key = &doc.Key{}
-							}
+							k := item.GetKey(record["key_nm"].(string))
 							if record["pk_changed"].(int64) == 1 {
 								if record["pk_database"].(int64) == 1 {
-									item.Key.Type = "primary"
-								} else if item.Key.Type == util.EmptyString {
-									item.Key.Type = "foreign"
+									k.Type = "primary"
+								} else if k.Type == util.EmptyString {
+									k.Type = "foreign"
 								}
 							}
 							if record["keyname_changed"].(int64) == 1 {
-								item.Key.Name = record["keyname_database"].(string)
+								k.Name = record["keyname_database"].(string)
+							}
+							if k != emptykey {
+								item.UpsertKey(k)
 							}
 						}
 
@@ -770,10 +764,10 @@ func (a *Archive) DiffItems(setdiff *Diff) (*Diff, error) {
 							keytype = "primary"
 						}
 
-						item.Key = &doc.Key{
+						item.UpsertKey(&doc.Key{
 							Name: record["key_nm"].(string),
 							Type: keytype,
-						}
+						})
 					}
 
 					d.Update(item)
@@ -937,8 +931,8 @@ func (a *Archive) DiffJoins(setdiff *Diff, diff *Diff) (*Diff, error) {
 
 	rs.ForEach(func(record map[string]interface{}) error {
 		rel, err := a.getRelationship(record, setdiff)
-		if !diff.HasDeletion(rel.ID()) {
-			if err == nil {
+		if err == nil {
+			if !diff.HasDeletion(rel.ID()) {
 				pparts := strings.Split(record["parent_fqdn"].(string), ".")
 				cparts := strings.Split(record["child_fqdn"].(string), ".")
 				cardinality := "1,1,0,-1"
@@ -968,11 +962,10 @@ func (a *Archive) DiffJoins(setdiff *Diff, diff *Diff) (*Diff, error) {
 				rel.UpsertJoin(join)
 
 				d.Delete(join, join.ID())
-			} else {
-				fmt.Println(err)
-				j, _ := json.MarshalIndent(record, "", "  ")
-				fmt.Println(string(j))
 			}
+		} else {
+			fmt.Println("Error deleting join:", err)
+			util.Dump(record)
 		}
 
 		return nil
@@ -984,43 +977,57 @@ func (a *Archive) DiffJoins(setdiff *Diff, diff *Diff) (*Diff, error) {
 	}
 
 	rs.ForEach(func(record map[string]interface{}) error {
+		pparts := strings.Split(record["parent_fqdn"].(string), ".")
+		cparts := strings.Split(record["child_fqdn"].(string), ".")
+		cardinality := "1,1,0,-1"
+
+		if record["cardinality"] != util.EmptyString && len(strings.TrimSpace(record["cardinality"].(string))) > 0 {
+			cardinality = record["cardinality"].(string)
+		}
+
+		join := &doc.Join{
+			Parent: &doc.RelItem{
+				Schema: pparts[0],
+				Set:    pparts[1],
+				Item:   pparts[2],
+				FQDN:   record["parent_fqdn"].(string),
+			},
+			Child: &doc.RelItem{
+				Schema: cparts[0],
+				Set:    cparts[1],
+				Item:   cparts[2],
+				FQDN:   record["child_fqdn"].(string),
+			},
+			Position:    int(record["position"].(int64)),
+			Cardinality: cardinality,
+		}
+
 		rel, err := a.getRelationship(record, setdiff)
-		if !diff.HasDeletion(rel.ID()) {
-			if err == nil {
-				pparts := strings.Split(record["parent_fqdn"].(string), ".")
-				cparts := strings.Split(record["child_fqdn"].(string), ".")
-				cardinality := "1,1,0,-1"
-
-				if record["cardinality"] != util.EmptyString && len(strings.TrimSpace(record["cardinality"].(string))) > 0 {
-					cardinality = record["cardinality"].(string)
-				}
-
-				join := &doc.Join{
-					Parent: &doc.RelItem{
-						Schema: pparts[0],
-						Set:    pparts[1],
-						Item:   pparts[2],
-						FQDN:   record["parent_fqdn"].(string),
-					},
-					Child: &doc.RelItem{
-						Schema: cparts[0],
-						Set:    cparts[1],
-						Item:   cparts[2],
-						FQDN:   record["child_fqdn"].(string),
-					},
-					Position:     int(record["position"].(int64)),
-					Cardinality:  cardinality,
-					Relationship: rel,
-				}
-
-				rel.UpsertJoin(join)
+		if err == nil {
+			if !diff.HasDeletion(rel.ID()) {
+				join.Relationship = rel
+				join = rel.UpsertJoin(join)
 
 				d.Update(join, join.ID())
-			} else {
-				fmt.Println(err)
-				j, _ := json.MarshalIndent(record, "", "  ")
-				fmt.Println(string(j))
 			}
+		} else {
+			source, err := a.doc.GetSchema(pparts[0])
+			if err == nil {
+				rel = source.UpsertRelationship(&doc.Relationship{
+					Id:   record["relationship_id"].(string),
+					Name: doc.Name{Physical: record["db_relationship_id"].(string)},
+				})
+
+				join.Relationship = rel
+
+				rel.UpsertJoin(join)
+				d.Update(join, join.ID())
+
+				return nil
+			}
+
+			fmt.Println("error updating join:", err)
+			util.Dump(record)
 		}
 
 		return nil
@@ -1074,9 +1081,8 @@ func (a *Archive) getRelationship(record map[string]interface{}, diff *Diff) (*d
 
 	set, err := a.getSet(record)
 	if err != nil {
-		fmt.Println(err.Error())
-		j, _ := json.MarshalIndent(record, "", "  ")
-		fmt.Println(string(j))
+		fmt.Println(err)
+		util.Dump(record)
 
 		return &doc.Relationship{}, err
 	}

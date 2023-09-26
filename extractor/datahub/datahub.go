@@ -228,29 +228,40 @@ func (dh *Datahub) PopulateItems(diff *archive.Diff) error {
 				},
 				Comment: i["description"].(string),
 				// Type: getType(),
-				UDTType:  i["type"].(string),
+				Type: i["type"].(string),
+				// UDTType:  i["type"].(string),
 				Nullable: i["nullable"].(bool),
 				FQDN:     i["stub"].(string),
 				// Example: i["example"].(string),
 			})
+
+			if i["default"] != nil {
+				item.Default = i["default"].(string)
+			}
+			if i["example"] != nil {
+				item.Example = i["example"].(string)
+			}
 			if i["metadata"] != nil {
 				item.Metadata = i["metadata"].(map[string]interface{})
 			}
 			if i["key"] != nil {
-				k := i["key"].(map[string]interface{})
+				keys := i["key"].([]interface{})
+				// (map[string]interface{})
 
-				if k["is_key"].(bool) {
-					var t string
-					if k["primary"].(bool) {
-						t = "primary"
-					} else {
-						t = "foreign"
-					}
+				for _, k := range keys {
+					if k.(map[string]interface{})["is_key"].(bool) {
+						var t string
+						if k.(map[string]interface{})["primary"].(bool) {
+							t = "primary"
+						} else {
+							t = "foreign"
+						}
 
-					item.Key = &doc.Key{
-						Name:  k["name"].(string),
-						Type:  t,
-						Items: []string{item.Name.Physical},
+						item.UpsertKey(&doc.Key{
+							Name:  k.(map[string]interface{})["name"].(string),
+							Type:  t,
+							Items: []string{item.Name.Physical},
+						})
 					}
 				}
 			}
@@ -422,6 +433,13 @@ func (dh *Datahub) get(endpoint string) (int, []byte, error) {
 func (dh *Datahub) send(method string, endpoint string, data interface{}) (int, interface{}, error) {
 	fmt.Printf("  HTTP %v %v\n", method, endpoint)
 
+	if method == "POST" {
+		util.DumpLog("./post.log", map[string]interface{}{
+			"endpoint": endpoint,
+			"data":     data,
+		})
+	}
+
 	body, _ := json.Marshal(data)
 	var res interface{}
 
@@ -455,12 +473,8 @@ func (dh *Datahub) send(method string, endpoint string, data interface{}) (int, 
 		err = dh.getAuthToken()
 		if err == nil {
 			dh.reattemptlogin = true
-			return dh.post(endpoint, data)
+			return dh.send(method, endpoint, data)
 		}
-	}
-
-	if response.StatusCode != 200 && response.StatusCode != 201 {
-		return response.StatusCode, res, errors.New(fmt.Sprintf("request failure (%v)", response.StatusCode))
 	}
 
 	content, err := ioutil.ReadAll(response.Body)
@@ -468,12 +482,24 @@ func (dh *Datahub) send(method string, endpoint string, data interface{}) (int, 
 		return 0, res, err
 	}
 
+	if response.StatusCode != 200 && response.StatusCode != 201 {
+		return response.StatusCode, res, errors.New(fmt.Sprintf("request failure (%v): %s\n", response.StatusCode, content))
+	}
+
 	// fmt.Printf("%s\n%v", content, response.StatusCode)
 
 	var resbody interface{}
 	err = json.Unmarshal(content, &resbody)
+	if err != nil {
+		if response.StatusCode == 200 || response.StatusCode == 201 {
+			var x interface{}
+			return response.StatusCode, x, nil
+		}
 
-	return response.StatusCode, resbody, err
+		return response.StatusCode, map[string]interface{}{"raw": string(content)}, err
+	}
+
+	return response.StatusCode, resbody, nil
 }
 
 func (dh *Datahub) post(endpoint string, data interface{}) (int, interface{}, error) {
@@ -744,6 +770,8 @@ func (dh *Datahub) Commit(diffs ...*archive.Diff) error {
 		// Updates
 		if len(d.Updated) > 0 {
 			fmt.Println("\n  committing updates...")
+			sets := make(map[string][]map[string]interface{})
+			rels := make([]map[string]interface{}, 0)
 			for _, obj := range d.Updated {
 				switch value := obj.(type) {
 				case *doc.Set:
@@ -751,7 +779,48 @@ func (dh *Datahub) Commit(diffs ...*archive.Diff) error {
 					delete(data, "items")
 					dh.put("/catalog/set/"+value.Id, data)
 					// util.Dump(data)
+				case *doc.Item:
+					if sets[value.Set().Id] == nil {
+						sets[value.Set().Id] = make([]map[string]interface{}, 0)
+					}
+					sets[value.Set().Id] = append(sets[value.Set().Id], value.ToPostBody())
+				case *doc.Relationship:
+					rels = append(rels, value.ToPostBody())
 				}
+			}
+
+			if len(sets) > 0 {
+				for id, data := range sets {
+					// if false {
+					// 	fmt.Println(id)
+					// }
+					// util.Dump(map[string]interface{}{
+					// 	"items": data,
+					// })
+					status, _, err := dh.post("/catalog/set/"+id+"/items", map[string]interface{}{
+						"items": data,
+					})
+					if err != nil {
+						fmt.Println(err)
+					} else if status != 201 && status != 200 {
+						fmt.Printf("%v set item updates failed with HTTP %v\n", id, status)
+					}
+				}
+				// util.DumpFile("tmp.json", sets)
+			}
+
+			if len(rels) > 0 {
+				status, _, err := dh.put("/catalog/relationships", map[string]interface{}{
+					"relationships": rels,
+				})
+
+				if err != nil {
+					fmt.Println(err)
+				} else if status != 201 && status != 200 {
+					fmt.Printf("%v relationship updates failed with HTTP %v\n", len(rels), status)
+				}
+
+				// util.Dump(body)
 			}
 			// } else {
 			// 	fmt.Println("\n  skipping updates (none detected)")

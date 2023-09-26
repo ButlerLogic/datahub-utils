@@ -25,6 +25,7 @@ type Extractor struct {
 	DryRun           bool     `name:"dryrun" type:"bool" default:"false" help:"Pull data but do not push deltas."`
 	DatahubURL       string   `name:"url" short:"u" help:"URL of the Datahub API"`
 	Max              int      `name:"max" short:"m" default:"35" help:"The maximum number of updates to preview (dry run)."`
+	System           string   `name:"system" short:"j" help:"The system/job ID where status messages are logged."`
 	ConnectionString string   `arg:"conn" optional:"" help:"The source connection string used to extract metadata from the data store"`
 }
 

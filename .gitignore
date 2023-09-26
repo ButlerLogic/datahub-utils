@@ -3,3 +3,8 @@
 *.exe
 dh-config.json
 *.yml
+*.db
+!archive/metadoc.db
+*.log
+*.json
+!package.json
