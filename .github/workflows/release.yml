@@ -60,8 +60,8 @@ jobs:
         if: steps.create_release.outputs.id != ''
 
       - name: Build Windows
-        if: steps.create_release.outputs.id != '' ../../dh-util.go
-        run: mkdir -p ./bin/windows && cd ./bin/windows && qgo build
+        if: steps.create_release.outputs.id != ''
+        run: mkdir -p ./bin/windows && cd ./bin/windows && qgo build ../../dh-util.go
         env:
           GOOS: windows
 
