@@ -56,7 +56,7 @@ jobs:
           node-version: lts/*
 
       - name: Install Quikdev Go Tool
-        run: npm i -g @quikdev\go
+        run: npm i -g @quikdev/go
         if: steps.create_release.outputs.id != ''
 
       - name: Build Windows
