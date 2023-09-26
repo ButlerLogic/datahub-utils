@@ -55,30 +55,30 @@ jobs:
         with:
           node-version: lts/*
 
-      - name: Install Quikdev Go Tool
-        run: npm i -g @quikdev/go
-        if: steps.create_release.outputs.id != ''
+      # - name: Install Quikdev Go Tool
+      #   run: npm i -g @quikdev/go
+      #   if: steps.create_release.outputs.id != ''
 
       - name: Build Windows
         if: steps.create_release.outputs.id != ''
-        run: qgo build
+        run: mkdir -p /.dist/win32 && go build -ldflags "-X 'main.name=dh-util' -X 'main.version=1.0.0-alpha.1' -X 'main.description=A Datahub metadata utility'" -o /.dist/win32/dh-util.exe dh-util.go
         env:
           GOOS: windows
 
       - name: Build macOS
         if: steps.create_release.outputs.id != ''
-        run: qgo build
+        run: mkdir -p /.dist/darwin && go build -ldflags "-X 'main.name=dh-util' -X 'main.version=1.0.0-alpha.1' -X 'main.description=A Datahub metadata utility'" -o /.dist/darwin/dh-util dh-util.go
         env:
           GOOS: darwin
 
       - name: Build Linux
         if: steps.create_release.outputs.id != ''
-        run: qgo build
+        run: mkdir -p /.dist/linux && go build -ldflags "-X 'main.name=dh-util' -X 'main.version=1.0.0-alpha.1' -X 'main.description=A Datahub metadata utility'" -o /.dist/linux/dh-util dh-util.go
         env:
           GOOS: linux
 
       - name: Temp
-        run: ls -l
+        run: ls -l /.dist && ls -l /.dist/win32 && ls -l /.dist/linux && ls -l /.dist/darwin
 
       - name: Rollback Release
         if: failure() && steps.create_release.outputs.id != ''
