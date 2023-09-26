@@ -1,0 +1,89 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: 'Publish'
+    runs-on: ubuntu-latest
+    steps:
+       # Checkout updated source code
+      - uses: actions/checkout@v4
+        name: Checkout Code
+
+      - name: Tag
+        id: autotagger
+        uses: butlerlogic/action-autotag@stable
+        with:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+
+      # If the new version/tag is a pre-release (i.e. 1.0.0-beta.1), create
+        # an environment variable indicating it is a prerelease.
+      - name: Pre-release
+        if: steps.autotagger.outputs.tagname != ''
+        run: |
+          if [[ "${{ steps.autotagger.output.version }}" == *"-"* ]]; then echo "::set-env IS_PRERELEASE=true";else echo "::set-env IS_PRERELEASE=''";fi
+
+      - name: Release
+        id: create_release
+        if: steps.autotagger.outputs.tagname != ''
+        uses: actions/create-release@v1.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.autotagger.outputs.tagname }}
+          release_name: ${{ steps.autotagger.outputs.tagname }}
+          body: ${{ steps.autotagger.outputs.tagmessage }}
+          draft: false
+          prerelease: env.IS_PRERELEASE != ''
+
+      - name: Setup Go
+        if: steps.create_release.outputs.id != ''
+        uses: actions/setup-go@v4
+        with:
+          go-version: '^1.21.0' # The Go version to download (if necessary) and use.
+
+      - run: go version
+        if: steps.create_release.outputs.id != ''
+
+      - uses: actions/setup-node@v3
+        if: steps.create_release.outputs.id != ''
+        name: Setup Node.js
+        with:
+          node-version: lts/*
+
+      - name: Install Quikdev Go Tool
+        run: npm i -g @quikdev\go
+        if: steps.create_release.outputs.id != ''
+
+      - name: Build Windows
+        if: steps.create_release.outputs.id != ''
+        run: qgo build -o ./bin/windows
+        with:
+          GOOS: windows
+
+      - name: Build macOS
+        if: steps.create_release.outputs.id != ''
+        run: qgo build -o ./bin/darwin
+        with:
+          GOOS: darwin
+
+      - name: Build Linux
+        if: steps.create_release.outputs.id != ''
+        run: qgo build -o ./bin/linux
+        with:
+          GOOS: linux
+
+      - name: Temp
+        run: ls -l ./bin/windows && ls -l ./bin/darwin && ls -l ./bin/linux
+
+      - name: Rollback Release
+        if: failure() && steps.create_release.outputs.id != ''
+        uses: author/action-rollback@stable
+        with:
+          tag: ${{ steps.autotagger.outputs.tagname }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -4,7 +4,7 @@
 *.exe
 dh-config.json
 *.yml
-!.gihub/**/*.yml
+!.github/**/*.yml
 *.db
 !archive/metadoc.db
 *.log
