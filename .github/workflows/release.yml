@@ -61,19 +61,19 @@ jobs:
 
       - name: Build Windows
         if: steps.create_release.outputs.id != ''
-        run: mkdir -p ./bin/win32 && go build -ldflags "-X 'main.name=dh-util' -X 'main.version=1.0.0-alpha.1' -X 'main.description=A Datahub metadata utility'" -o /.dist/win32/dh-util.exe dh-util.go
+        run: mkdir -p ./bin/win32 && go build -ldflags "-X 'main.name=dh-util' -X 'main.version=1.0.0-alpha.1' -X 'main.description=A Datahub metadata utility'" -o .bin//win32/dh-util.exe dh-util.go
         env:
           GOOS: windows
 
       - name: Build macOS
         if: steps.create_release.outputs.id != ''
-        run: mkdir -p ./bin/darwin && go build -ldflags "-X 'main.name=dh-util' -X 'main.version=1.0.0-alpha.1' -X 'main.description=A Datahub metadata utility'" -o /.dist/darwin/dh-util dh-util.go
+        run: mkdir -p ./bin/darwin && go build -ldflags "-X 'main.name=dh-util' -X 'main.version=1.0.0-alpha.1' -X 'main.description=A Datahub metadata utility'" -o ./bin/darwin/dh-util dh-util.go
         env:
           GOOS: darwin
 
       - name: Build Linux
         if: steps.create_release.outputs.id != ''
-        run: mkdir -p ./bin/linux && go build -ldflags "-X 'main.name=dh-util' -X 'main.version=1.0.0-alpha.1' -X 'main.description=A Datahub metadata utility'" -o /.dist/linux/dh-util dh-util.go
+        run: mkdir -p ./bin/linux && go build -ldflags "-X 'main.name=dh-util' -X 'main.version=1.0.0-alpha.1' -X 'main.description=A Datahub metadata utility'" -o ./bin/linux/dh-util dh-util.go
         env:
           GOOS: linux
 
