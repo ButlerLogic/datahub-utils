@@ -67,18 +67,18 @@ jobs:
 
       - name: Build macOS
         if: steps.create_release.outputs.id != ''
-        run: mkdir -p && qgo build -o /dist/darwin/dh-util
+        run: mkdir -p /dist/darwin && qgo build -o /dist/darwin/dh-util
         env:
           GOOS: darwin
 
       - name: Build Linux
         if: steps.create_release.outputs.id != ''
-        run: mkdir -p && qgo build -o /dist/linux/dh-util
+        run: mkdir -p /dist/linux && qgo build -o /dist/linux/dh-util
         env:
           GOOS: linux
 
       - name: Temp
-        run: ls -l /dist/windows && ls -l /dist/darwin && ls -l /dist/linux
+        run: ls -l /dist /dist/darwin/windows && ls -l /dist/darwin && ls -l /dist/linux
 
       - name: Rollback Release
         if: failure() && steps.create_release.outputs.id != ''
