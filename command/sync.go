@@ -26,6 +26,7 @@ type Extractor struct {
 	DatahubURL       string   `name:"url" short:"u" help:"URL of the Datahub API"`
 	Max              int      `name:"max" short:"m" default:"35" help:"The maximum number of updates to preview (dry run)."`
 	System           string   `name:"system" short:"j" help:"The system/job ID where status messages are logged."`
+	APIKey           string   `name:"api_key" short:"k" help:"Optional API key to access the Datahub"`
 	ConnectionString string   `arg:"conn" optional:"" help:"The source connection string used to extract metadata from the data store"`
 }
 
@@ -115,7 +116,7 @@ func (e *Extractor) Run(ctx *Context) error {
 	fmt.Println("\nNow extracting from Datahub...")
 	start_datahub := time.Now()
 
-	dh, err := datahub.New(e.DatahubURL, e.Source, cache)
+	dh, err := datahub.New(e.DatahubURL, e.Source, cache, e.APIKey)
 
 	if err == nil {
 		err = dh.PopulateSources()

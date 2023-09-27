@@ -25,6 +25,7 @@ type ExtractorConfiguration struct {
 	Outfile    string   `yaml:"outfile"`
 	DryRun     bool     `yaml:"dryrun"`
 	System     string   `yaml:"system_id"`
+	APIKey     string   `yaml:"api_key"`
 	Max        int      `yaml:"max"`
 }
 
@@ -61,6 +62,10 @@ func (c ExtractorConfiguration) Apply(e *Extractor) error {
 	}
 
 	e.ConnectionString = c.ConnectionString()
+
+	if e.APIKey == util.EmptyString {
+		e.APIKey = c.APIKey
+	}
 
 	if e.Schemas == nil {
 		e.Schemas = c.Schemas

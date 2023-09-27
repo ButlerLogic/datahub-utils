@@ -25,15 +25,21 @@ type Datahub struct {
 	archive        *archive.Archive
 }
 
-func New(root string, datasource string, a *archive.Archive) (*Datahub, error) {
+func New(root string, datasource string, a *archive.Archive, apikey ...string) (*Datahub, error) {
 	_, err := url.Parse(root)
 	if err != nil {
 		return &Datahub{}, err
 	}
 
+	var api_key string
+	if len(apikey) > 0 {
+		api_key = apikey[0]
+	}
+
 	return &Datahub{
 		root:           root,
 		reattemptlogin: true,
+		token:          api_key,
 		// doc: a.Doc(),
 		doc: doc.New(&doc.Source{
 			Name: doc.Name{Physical: datasource},
