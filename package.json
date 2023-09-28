@@ -1,6 +1,6 @@
 {
   "name": "dh-util",
-  "version": "1.0.0-beta.1",
+  "version": "1.0.0-beta.2",
   "description": "A Datahub metadata utility",
   "main": "dh-util.go",
   "dev": {

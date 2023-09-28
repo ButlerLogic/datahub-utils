@@ -52,16 +52,17 @@ jobs:
         with:
           node-version: lts/*
 
-      # - name: Install Quikdev Go Tool
-      #   run: npm i -g @quikdev/go
-      #   if: steps.create_release.outputs.id != ''
+      - name: Install Quikdev Go Tool
+        run: npm i -g @quikdev/go
+        if: steps.create_release.outputs.id != ''
 
       - name: Build Windows
         if: steps.create_release.outputs.id != ''
         run: |
           mkdir -p ./bin/win32
           mkdir -p ./release
-          go build -ldflags "-X 'main.name=dh-util' -X 'main.version=1.0.0-alpha.1' -X 'main.description=A Datahub metadata utility'" -o ./bin/win32/dh-util.exe dh-util.go
+          qgo build
+          # go build -ldflags "-X 'main.name=dh-util' -X 'main.version=1.0.0-alpha.1' -X 'main.description=A Datahub metadata utility'" -o ./bin/win32/dh-util.exe dh-util.go
           tar -czvf ./release/dh-util-win32-x64.tar.gz ./bin/win32
           zip -jr ./release/dh-util-win32-x64.zip ./bin/win32
         env:
@@ -72,7 +73,8 @@ jobs:
         run: |
           mkdir -p ./bin/darwin
           mkdir -p ./release
-          go build -ldflags "-X 'main.name=dh-util' -X 'main.version=1.0.0-alpha.1' -X 'main.description=A Datahub metadata utility'" -o ./bin/darwin/dh-util dh-util.go
+          qgo build
+          # go build -ldflags "-X 'main.name=dh-util' -X 'main.version=1.0.0-alpha.1' -X 'main.description=A Datahub metadata utility'" -o ./bin/darwin/dh-util dh-util.go
           chmod +x ./bin/darwin/dh-util
           tar -czvf ./release/dh-util-macos-x64.tar.gz ./bin/darwin
           zip -jr ./release/dh-util-macos-x64.zip ./bin/darwin
@@ -84,12 +86,14 @@ jobs:
         run: |
           mkdir -p ./bin/linux
           mkdir -p ./release
-          go build -ldflags "-X 'main.name=dh-util' -X 'main.version=1.0.0-alpha.1' -X 'main.description=A Datahub metadata utility'" -o ./bin/linux/dh-util dh-util.go
+          qgo build
+          # go build -ldflags "-X 'main.name=dh-util' -X 'main.version=1.0.0-alpha.1' -X 'main.description=A Datahub metadata utility'" -o ./bin/linux/dh-util dh-util.go
           chmod +x ./bin/darwin/dh-util
           tar -czvf ./release/dh-util-linux-x64.tar.gz ./bin/linux
           zip -jr ./release/dh-util-linux-x64.zip ./bin/linux
         env:
           GOOS: linux
+          GOARCH: amd64
 
       # Upload tarballs to the release.
       - name: Upload Tarball Release Artifacts
