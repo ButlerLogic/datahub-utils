@@ -78,6 +78,7 @@ jobs:
           mkdir -p ./release
           # qgo build
           go build -ldflags "-X 'main.name=${PACKAGE_NAME}' -X 'main.version=${PACKAGE_VERSION}' -X 'main.description=${PACKAGE_DESCRIPTION}'" -o ./bin/win32/dh-util.exe dh-util.go
+          chmod +x ./bin/win32/dh-util.exe
           tar -czvf ./release/dh-util-win32-x64.tar.gz ./bin/win32
           zip -jr ./release/dh-util-win32-x64.zip ./bin/win32
         env:
