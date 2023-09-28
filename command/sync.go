@@ -42,17 +42,20 @@ func (e *Extractor) Run(ctx *Context) error {
 		_, err := os.Stat(e.Config)
 		if err != nil {
 			if os.IsNotExist(err) {
-				return errors.New("configuration/connection string not found")
+				err = errors.New("configuration/connection string not found")
 			}
+			fmt.Println(err)
 			return err
 		}
 
 		cfg := NewConfig(e.Config)
 		err = cfg.Apply(e)
 		if err != nil {
+			fmt.Println(err)
 			return err
 		}
 	}
+	fmt.Println("  configuration applied")
 
 	remote := e.extractor()
 
@@ -64,6 +67,7 @@ func (e *Extractor) Run(ctx *Context) error {
 
 	doc, err := remote.Extract()
 	if err != nil {
+		fmt.Println(err)
 		return err
 	}
 
