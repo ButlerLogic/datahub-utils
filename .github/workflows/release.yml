@@ -73,6 +73,7 @@ jobs:
           mkdir -p ./bin/darwin
           mkdir -p ./release
           go build -ldflags "-X 'main.name=dh-util' -X 'main.version=1.0.0-alpha.1' -X 'main.description=A Datahub metadata utility'" -o ./bin/darwin/dh-util dh-util.go
+          chmod +x ./bin/darwin/dh-util
           tar -czvf ./release/dh-util-macos-x64.tar.gz ./bin/darwin
           zip -jr ./release/dh-util-macos-x64.zip ./bin/darwin
         env:
@@ -84,6 +85,7 @@ jobs:
           mkdir -p ./bin/linux
           mkdir -p ./release
           go build -ldflags "-X 'main.name=dh-util' -X 'main.version=1.0.0-alpha.1' -X 'main.description=A Datahub metadata utility'" -o ./bin/linux/dh-util dh-util.go
+          chmod +x ./bin/darwin/dh-util
           tar -czvf ./release/dh-util-linux-x64.tar.gz ./bin/linux
           zip -jr ./release/dh-util-linux-x64.zip ./bin/linux
         env:
