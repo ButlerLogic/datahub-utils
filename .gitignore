@@ -5,7 +5,7 @@
 dh-config.json
 *.yml
 !.github/**/*.yml
-*.db
+**/*.db
 !archive/metadoc.db
 *.log
 *.json

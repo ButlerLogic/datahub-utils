@@ -26,6 +26,8 @@ type Datahub struct {
 }
 
 func New(root string, datasource string, a *archive.Archive, apikey ...string) (*Datahub, error) {
+	root = util.EncodeURL(root, apikey...)
+
 	_, err := url.Parse(root)
 	if err != nil {
 		return &Datahub{}, err
