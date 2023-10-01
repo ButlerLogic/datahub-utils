@@ -56,31 +56,19 @@ jobs:
       #   run: npm i -g @quikdev/go
       #   if: steps.create_release.outputs.id != ''
 
-      # Temporary process until qgo is fixed
-      - name: Identify build variables
+      - name: Build Windows
+        if: steps.create_release.outputs.id != ''
         run: |
           name=$(grep -E '"name":' package.json | awk -F '"' '{print $4}')
           version=$(grep -E '"version":' package.json | awk -F '"' '{print $4}')
           description=$(grep -E '"description":' package.json | awk -F '"' '{print $4}')
-          export PACKAGE_NAME="$name"
-          export PACKAGE_VERSION="$version"
-          export PACKAGE_DESCRIPTION="$description"
-
-          # Display the extracted values
-          echo "Name: $PACKAGE_NAME"
-          echo "Version: $PACKAGE_VERSION"
-          echo "Description: $PACKAGE_DESCRIPTION"
-
-      - name: Build Windows
-        if: steps.create_release.outputs.id != ''
-        run: |
+          echo "Name: $name"
+          echo "Version: $version"
+          echo "Description: $description"
           mkdir -p ./bin/win32
           mkdir -p ./release
           # qgo build
-          echo "Name: $PACKAGE_NAME"
-          echo "Version: $PACKAGE_VERSION"
-          echo "Description: $PACKAGE_DESCRIPTION"
-          go build -ldflags "-X 'main.name=$PACKAGE_NAME' -X 'main.version=$PACKAGE_VERSION' -X 'main.description=$PACKAGE_DESCRIPTION'" -o ./bin/win32/dh-util.exe dh-util.go
+          go build -ldflags "-X 'main.name=$name' -X 'main.version=$version' -X 'main.description=$description'" -o ./bin/win32/dh-util.exe dh-util.go
           chmod +x ./bin/win32/dh-util.exe
           tar -czvf ./release/dh-util-win32-x64.tar.gz ./bin/win32
           zip -jr ./release/dh-util-win32-x64.zip ./bin/win32
@@ -90,12 +78,15 @@ jobs:
       - name: Build macOS
         if: steps.create_release.outputs.id != ''
         run: |
+          name=$(grep -E '"name":' package.json | awk -F '"' '{print $4}')
+          version=$(grep -E '"version":' package.json | awk -F '"' '{print $4}')
+          description=$(grep -E '"description":' package.json | awk -F '"' '{print $4}')
+          echo "Name: $name"
+          echo "Version: $version"
+          echo "Description: $description"
           mkdir -p ./bin/darwin
           mkdir -p ./release
           # qgo build
-          echo "Name: $PACKAGE_NAME"
-          echo "Version: $PACKAGE_VERSION"
-          echo "Description: $PACKAGE_DESCRIPTION"
           go build -ldflags "-X 'main.name=$PACKAGE_NAME' -X 'main.version=$PACKAGE_VERSION' -X 'main.description=$PACKAGE_DESCRIPTION'" -o ./bin/darwin/dh-util dh-util.go
           chmod +x ./bin/darwin/dh-util
           tar -czvf ./release/dh-util-macos-x64.tar.gz ./bin/darwin
@@ -106,12 +97,15 @@ jobs:
       - name: Build Linux
         if: steps.create_release.outputs.id != ''
         run: |
+          name=$(grep -E '"name":' package.json | awk -F '"' '{print $4}')
+          version=$(grep -E '"version":' package.json | awk -F '"' '{print $4}')
+          description=$(grep -E '"description":' package.json | awk -F '"' '{print $4}')
+          echo "Name: $name"
+          echo "Version: $version"
+          echo "Description: $description"
           mkdir -p ./bin/linux
           mkdir -p ./release
           # qgo build
-          echo "Name: $PACKAGE_NAME"
-          echo "Version: $PACKAGE_VERSION"
-          echo "Description: $PACKAGE_DESCRIPTION"
           go build -tags netgo -installsuffix netgo -ldflags "-X 'main.name=$PACKAGE_NAME' -X 'main.version=$PACKAGE_VERSION' -X 'main.description=$PACKAGE_DESCRIPTION' -w -extldflags '-static'" -o ./bin/linux/dh-util dh-util.go
           chmod +x ./bin/darwin/dh-util
           tar -czvf ./release/dh-util-linux-x64.tar.gz ./bin/linux

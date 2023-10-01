@@ -15,19 +15,19 @@ import (
 )
 
 type Extractor struct {
-	Config string `name:"config" short:"c" type:"string" help:"Specify a JSON configuration file (ignores connection string when supplied). A file called dh-config.json will be auto-recognized if it exists." default:"./dh-config.yml"`
+	Config string `name:"config" short:"c" type:"string" help:"Specify a JSON configuration file (ignores connection string when supplied). A file called dh-config.json will be auto-recognized if it exists." default:"./dh-config.yml" json:"config_file"`
 	// Extract          []string `name:"extract" short:"x" type:"string" default:"source,datahub" enum:"source,datahub" help:"Determines what to extract, source (database/source) and/or Datahub metadata."`
-	Schemas          []string `name:"schemas" short:"s" type:"string" help:"List of source schemas to extract."`
-	Outfile          string   `name:"outfile" short:"o" type:"string" help:"Dump the extraction to a JSON file."`
-	Expand           []string `name:"expand_json" short:"e" type:"string" help:"When configured, these JSON fields are expanded so each key is treated as a unique item."`
-	SkipViewExpand   bool     `name:"expand_fast" short:"f" type:"bool" default:"false" help:"Speed up JSON expansion process by ignoring views"`
-	Source           string   `name:"datahub_source" short:"d" type:"string" help:"Name or ID of the Datahub data source."`
-	DryRun           bool     `name:"dryrun" type:"bool" default:"false" help:"Pull data but do not push deltas."`
-	DatahubURL       string   `name:"url" short:"u" help:"URL of the Datahub API"`
-	Max              int      `name:"max" short:"m" default:"35" help:"The maximum number of updates to preview (dry run)."`
-	System           string   `name:"system" short:"j" help:"The system/job ID where status messages are logged."`
-	APIKey           string   `name:"api_key" short:"k" help:"Optional API key to access the Datahub"`
-	ConnectionString string   `arg:"conn" optional:"" help:"The source connection string used to extract metadata from the data store"`
+	Schemas          []string `name:"schemas" short:"s" type:"string" help:"List of source schemas to extract." json:"config_schema"`
+	Outfile          string   `name:"outfile" short:"o" type:"string" help:"Dump the extraction to a JSON file." json:"output_file"`
+	Expand           []string `name:"expand_json" short:"e" type:"string" help:"When configured, these JSON fields are expanded so each key is treated as a unique item." json:"expand_json"`
+	SkipViewExpand   bool     `name:"expand_fast" short:"f" type:"bool" default:"false" help:"Speed up JSON expansion process by ignoring views" json:"expand_fast"`
+	Source           string   `name:"datahub_source" short:"d" type:"string" help:"Name or ID of the Datahub data source." json:"source"`
+	DryRun           bool     `name:"dryrun" type:"bool" default:"false" help:"Pull data but do not push deltas." json:"dry_run"`
+	DatahubURL       string   `name:"url" short:"u" help:"URL of the Datahub API" json:"datahub_url"`
+	Max              int      `name:"max" short:"m" default:"35" help:"The maximum number of updates to preview (dry run)." json:"max"`
+	System           string   `name:"system" short:"j" help:"The system/job ID where status messages are logged." json:"datahub_job_id"`
+	APIKey           string   `name:"api_key" short:"k" help:"Optional API key to access the Datahub" json:"api_key"`
+	ConnectionString string   `arg:"conn" optional:"" help:"The source connection string used to extract metadata from the data store" json:"db_connection_string"`
 }
 
 func (e *Extractor) Run(ctx *Context) error {
@@ -56,6 +56,7 @@ func (e *Extractor) Run(ctx *Context) error {
 		}
 	}
 	fmt.Println("  configuration applied")
+	util.Dump(e)
 
 	remote := e.extractor()
 
