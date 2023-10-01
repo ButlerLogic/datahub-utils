@@ -106,7 +106,7 @@ jobs:
           mkdir -p ./bin/linux
           mkdir -p ./release
           # qgo build
-          go build -tags netgo -installsuffix netgo -ldflags "-X 'main.name=$PACKAGE_NAME' -X 'main.version=$PACKAGE_VERSION' -X 'main.description=$PACKAGE_DESCRIPTION' -w -extldflags '-static'" -o ./bin/linux/dh-util dh-util.go
+          go build -tags netgo -installsuffix netgo -ldflags "-X 'main.name=$name' -X 'main.version=$version' -X 'main.description=$description' -w -extldflags '-static'" -o ./bin/linux/dh-util dh-util.go
           chmod +x ./bin/darwin/dh-util
           tar -czvf ./release/dh-util-linux-x64.tar.gz ./bin/linux
           zip -jr ./release/dh-util-linux-x64.zip ./bin/linux

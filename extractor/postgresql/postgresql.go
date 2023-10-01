@@ -157,7 +157,7 @@ func (e Extractor) SQL(statement string, alias ...string) string {
 }
 
 func (e Extractor) SetConnectionString(conn string) error {
-	e.connstring = conn
+	e.connstring = util.EncodeURL(conn)
 
 	schema := strings.ToLower(strings.Split(conn, ":")[0])
 	if schema != "postgresql" {
