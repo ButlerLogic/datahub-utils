@@ -47,7 +47,7 @@ func (c ExtractorConfiguration) ConnectionString() string {
 		c.Type = "mssql"
 	}
 
-	return strings.ToLower(c.Type) + "://" + c.User + ":" + c.Password + "@" + c.Host + "/" + c.Database
+	return util.EncodeURL(strings.ToLower(c.Type) + "://" + c.User + ":" + c.Password + "@" + c.Host + "/" + c.Database)
 }
 
 func (c ExtractorConfiguration) Apply(e *Extractor) error {
