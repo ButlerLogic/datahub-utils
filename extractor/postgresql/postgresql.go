@@ -159,6 +159,12 @@ func (e Extractor) SQL(statement string, alias ...string) string {
 func (e Extractor) SetConnectionString(conn string) error {
 	e.connstring = util.EncodeURL(conn)
 
+	uri, _ := url.Parse(e.connstring)
+	qp := url.Values{}
+	qp.Add("sslmode", "prefer")
+	uri.RawQuery = qp.Encode()
+	e.connstring = uri.String()
+
 	schema := strings.ToLower(strings.Split(conn, ":")[0])
 	if schema != "postgresql" {
 		return errors.New("cannot use " + schema + " as a postgresql extractor")
