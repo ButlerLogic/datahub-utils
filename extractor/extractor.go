@@ -8,6 +8,7 @@ type Extractor interface {
 	Type() string
 	// Query(statement string) ([]map[string]interface{}, error)
 	ExpandJSONFields(*doc.Doc, bool, ...string)
+	SetDebugging(bool)
 }
 
 func GetAllSets(d *doc.Doc) []*doc.Set {

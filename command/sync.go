@@ -290,6 +290,8 @@ func (e *Extractor) extractor() extractor.Extractor {
 		return postgresql.New(e.ConnectionString, e.Schemas)
 	case "greenplum":
 		return postgresql.New(e.ConnectionString, e.Schemas)
+	default:
+		panic(schema + " extractor not found")
 	}
 
 	return empty

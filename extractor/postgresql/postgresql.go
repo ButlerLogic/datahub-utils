@@ -19,7 +19,7 @@ type Extractor struct {
 	schemas    []string
 	conn       *pgx.Conn
 	doc        *doc.Doc
-	Debug      bool
+	debug      bool
 }
 
 //go:embed sql/entities.sql
@@ -40,9 +40,13 @@ var DB_SQL string
 func New(conn string, schemas []string) Extractor {
 	e := Extractor{connstring: conn, schemas: schemas}
 	e.SetConnectionString(conn)
-	e.Debug = false
+	e.debug = false
 
 	return e
+}
+
+func (e Extractor) SetDebugging(ok bool) {
+	e.debug = ok
 }
 
 // func (e Extractor) Query(statement string) ([]map[string]interface{}, error) {
@@ -174,7 +178,7 @@ func (e Extractor) Type() string {
 }
 
 func (e Extractor) connect() (*pgx.Conn, error) {
-	if e.Debug {
+	if e.debug {
 		fmt.Println("establishing connection...")
 	}
 
@@ -194,13 +198,13 @@ func (e Extractor) connect() (*pgx.Conn, error) {
 }
 
 func (e Extractor) Extract() (*doc.Doc, error) {
-	if e.Debug {
+	if e.debug {
 		fmt.Println("  ... extraction initiated")
 	}
 
 	var empty *doc.Doc
 
-	if e.Debug {
+	if e.debug {
 		fmt.Println("  ... connecting to database")
 	}
 	conn, err := e.connect()
@@ -241,7 +245,7 @@ func (e Extractor) Extract() (*doc.Doc, error) {
 		return empty, err
 	}
 
-	if e.Debug {
+	if e.debug {
 		fmt.Println("  ... extraction complete")
 	}
 
@@ -249,7 +253,7 @@ func (e Extractor) Extract() (*doc.Doc, error) {
 }
 
 func (e Extractor) extractDatabaseDetails() error {
-	if e.Debug {
+	if e.debug {
 		fmt.Println("  ... extracting database details")
 	}
 
@@ -266,7 +270,7 @@ func (e Extractor) extractDatabaseDetails() error {
 }
 
 func (e Extractor) extractEntities() error {
-	if e.Debug {
+	if e.debug {
 		fmt.Println("  ... extracting database entities")
 	}
 	return forEachRecord(e.conn, e.SQL(ENTITY_SQL), func(record map[string]interface{}) error {
@@ -275,7 +279,7 @@ func (e Extractor) extractEntities() error {
 }
 
 func (e Extractor) extractRelationships() error {
-	if e.Debug {
+	if e.debug {
 		fmt.Println("  ... extracting database relationships")
 	}
 	return forEachRecord(e.conn, e.SQL(RELATIONSHIP_SQL, "col.table_schema"), func(record map[string]interface{}) error {
@@ -284,7 +288,7 @@ func (e Extractor) extractRelationships() error {
 }
 
 func (e Extractor) extractMaterializedViews() error {
-	if e.Debug {
+	if e.debug {
 		fmt.Println("  ... extracting database materialized views")
 	}
 	return forEachRecord(e.conn, e.SQL(MATVIEW_SQL, "m.schemaname"), func(record map[string]interface{}) error {
@@ -293,7 +297,7 @@ func (e Extractor) extractMaterializedViews() error {
 }
 
 func (e Extractor) extractStatistics() error {
-	if e.Debug {
+	if e.debug {
 		fmt.Println("  ... extracting database statistics")
 	}
 	return forEachRecord(e.conn, e.SQL(STATS_SQL, "schemaname"), func(record map[string]interface{}) error {
