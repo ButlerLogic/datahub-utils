@@ -27,6 +27,7 @@ type Extractor struct {
 	Max              int      `name:"max" short:"m" default:"35" help:"The maximum number of updates to preview (dry run)." json:"max"`
 	System           string   `name:"system" short:"j" help:"The system/job ID where status messages are logged." json:"datahub_job_id"`
 	APIKey           string   `name:"api_key" short:"k" help:"Optional API key to access the Datahub" json:"api_key"`
+	Debug            bool     `name:"debug" short:"d" help:"Turn on debugging"`
 	ConnectionString string   `arg:"conn" optional:"" help:"The source connection string used to extract metadata from the data store" json:"db_connection_string"`
 }
 
@@ -55,10 +56,18 @@ func (e *Extractor) Run(ctx *Context) error {
 			return err
 		}
 	}
-	fmt.Println("  configuration applied")
-	util.Dump(e)
+
+	if e.Debug {
+		fmt.Println("  configuration applied")
+		util.Dump(e)
+		fmt.Println("  setting up extractor...")
+	}
 
 	remote := e.extractor()
+
+	if e.Debug {
+		fmt.Println("  extractor setup complete")
+	}
 
 	var end_json time.Duration
 	var end_sqlite time.Duration
@@ -66,18 +75,27 @@ func (e *Extractor) Run(ctx *Context) error {
 
 	start_extract := time.Now()
 
+	if e.Debug {
+		fmt.Println("  begin extraction...")
+	}
 	doc, err := remote.Extract()
 	if err != nil {
 		fmt.Println(err)
 		return err
 	}
 
+	if e.Debug {
+		fmt.Println("  setting up document...")
+	}
 	cache.SetDoc(doc)
 
 	end_extract := time.Since(start_extract)
 	fmt.Printf("Source Extraction: %s\n", end_extract)
 
 	if len(e.Expand) > 0 {
+		if e.Debug {
+			fmt.Println("  enabling JSON field expansion functions...")
+		}
 		start_expand := time.Now()
 		remote.ExpandJSONFields(doc, e.SkipViewExpand, e.Expand...)
 		end_expand = time.Since(start_expand)
@@ -88,6 +106,9 @@ func (e *Extractor) Run(ctx *Context) error {
 	// JSON
 	case ".json":
 		start_json := time.Now()
+		if e.Debug {
+			fmt.Println("  writing metadoc to JSON file...")
+		}
 		util.DumpFile(e.Outfile, doc.ToJSON())
 		end_json = time.Since(start_json)
 		fmt.Printf("Created %s in %s\n", e.Outfile, end_json)
@@ -95,17 +116,26 @@ func (e *Extractor) Run(ctx *Context) error {
 	}
 
 	start_sqlite := time.Now()
+	if e.Debug {
+		fmt.Println("  extracting data set metadata from source...")
+	}
 	sets := extractor.GetAllSets(doc)
 	fmt.Printf("  stashing %v set(s)...\n", len(sets))
 	err = cache.UpsertSets("source", sets)
 	if err != nil {
 		fmt.Println(err)
 	}
+	if e.Debug {
+		fmt.Println("  extracting data item metadata from source...")
+	}
 	items := extractor.GetAllItems(doc)
 	fmt.Printf("  stashing %v item(s)...\n", len(items))
 	err = cache.UpsertItems("source", items)
 	if err != nil {
 		fmt.Println(err)
+	}
+	if e.Debug {
+		fmt.Println("  extracting data relationship metadata from source...")
 	}
 	rels := extractor.GetAllRelationships(doc)
 	fmt.Printf("  stashing %v relationship(s)...\n", len(rels))
@@ -124,6 +154,9 @@ func (e *Extractor) Run(ctx *Context) error {
 	dh, err := datahub.New(e.DatahubURL, e.Source, cache, e.APIKey)
 
 	if err == nil {
+		if e.Debug {
+			fmt.Println("  populating datahub sources...")
+		}
 		err = dh.PopulateSources()
 		if err != nil {
 			fmt.Println(err)
@@ -134,17 +167,29 @@ func (e *Extractor) Run(ctx *Context) error {
 			if err != nil {
 				fmt.Println(err)
 			} else {
+				if e.Debug {
+					fmt.Println("  diffing sets...")
+				}
 				diff, err := cache.DiffSets()
 
 				if err == nil {
+					if e.Debug {
+						fmt.Println("  populating data items...")
+					}
 					err = dh.PopulateItems(diff)
 					if err == nil {
 						items := extractor.GetAllItems(dh.GetDoc())
 						fmt.Printf("  stashing %v item(s)...\n", len(items))
 						err := cache.UpsertItems("datahub", items)
 						if err == nil {
+							if e.Debug {
+								fmt.Println("  diffing data items...")
+							}
 							itemdiff, err := cache.DiffItems(diff)
 							if err == nil {
+								if e.Debug {
+									fmt.Println("  populating datahub relationships...")
+								}
 								err = dh.PopulateRelationships(diff)
 								if err == nil {
 									rels := extractor.GetAllRelationships(dh.GetDoc())
@@ -152,12 +197,21 @@ func (e *Extractor) Run(ctx *Context) error {
 
 									err = cache.UpsertRelationships("datahub", rels)
 									if err == nil {
+										if e.Debug {
+											fmt.Println("  diffing data relationships...")
+										}
 										reldiff, err := cache.DiffRelationships(diff)
 										if err == nil {
+											if e.Debug {
+												fmt.Println("  diffing individual relationship joins...")
+											}
 											joindiff, err := cache.DiffJoins(diff, reldiff)
 											if err == nil {
 												fmt.Printf("\nNow syncing with the Datahub...\n")
 												if e.DryRun {
+													if e.Debug {
+														fmt.Println("  running dry run...")
+													}
 													dh.DryRun(diff, e.Max)
 													fmt.Println("")
 													dh.DryRun(itemdiff, e.Max, "item")
@@ -166,6 +220,9 @@ func (e *Extractor) Run(ctx *Context) error {
 													fmt.Println("")
 													dh.DryRun(joindiff, e.Max, "join")
 												} else {
+													if e.Debug {
+														fmt.Println("  syncing...")
+													}
 													dh.DryRun(diff, e.Max)
 													dh.Commit(diff)
 													fmt.Println("")

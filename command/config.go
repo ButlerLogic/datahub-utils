@@ -27,6 +27,7 @@ type ExtractorConfiguration struct {
 	System     string   `yaml:"system_id"`
 	APIKey     string   `yaml:"api_key"`
 	Max        int      `yaml:"max"`
+	Debug      bool     `yaml:"debug"`
 }
 
 func NewConfig(path string) *ExtractorConfiguration {
@@ -97,6 +98,10 @@ func (c ExtractorConfiguration) Apply(e *Extractor) error {
 
 	if e.DryRun == util.EmptyBool && c.DryRun != util.EmptyBool {
 		e.DryRun = c.DryRun
+	}
+
+	if e.Debug == util.EmptyBool && c.Debug != util.EmptyBool {
+		e.Debug = c.Debug
 	}
 
 	if e.Max != util.EmptyInt && c.Max != util.EmptyInt && c.Max > 0 {
