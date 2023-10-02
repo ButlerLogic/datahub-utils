@@ -21,7 +21,7 @@ type Extractor struct {
 	Outfile          string   `name:"outfile" short:"o" type:"string" help:"Dump the extraction to a JSON file." json:"output_file"`
 	Expand           []string `name:"expand_json" short:"e" type:"string" help:"When configured, these JSON fields are expanded so each key is treated as a unique item." json:"expand_json"`
 	SkipViewExpand   bool     `name:"expand_fast" short:"f" type:"bool" default:"false" help:"Speed up JSON expansion process by ignoring views" json:"expand_fast"`
-	Source           string   `name:"datahub_source" short:"d" type:"string" help:"Name or ID of the Datahub data source." json:"source"`
+	Source           string   `name:"datahub_source" short:"i" type:"string" help:"Name or ID of the Datahub data source." json:"source"`
 	DryRun           bool     `name:"dryrun" type:"bool" default:"false" help:"Pull data but do not push deltas." json:"dry_run"`
 	DatahubURL       string   `name:"url" short:"u" help:"URL of the Datahub API" json:"datahub_url"`
 	Max              int      `name:"max" short:"m" default:"35" help:"The maximum number of updates to preview (dry run)." json:"max"`
