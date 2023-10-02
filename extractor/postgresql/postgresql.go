@@ -19,6 +19,7 @@ type Extractor struct {
 	schemas    []string
 	conn       *pgx.Conn
 	doc        *doc.Doc
+	Debug      bool
 }
 
 //go:embed sql/entities.sql
@@ -39,6 +40,7 @@ var DB_SQL string
 func New(conn string, schemas []string) Extractor {
 	e := Extractor{connstring: conn, schemas: schemas}
 	e.SetConnectionString(conn)
+	e.Debug = false
 
 	return e
 }
@@ -172,6 +174,10 @@ func (e Extractor) Type() string {
 }
 
 func (e Extractor) connect() (*pgx.Conn, error) {
+	if e.Debug {
+		fmt.Println("establishing connection...")
+	}
+
 	e.connstring = strings.Replace(strings.Replace(e.connstring, "postgresql://", "postgres://", 1), "greenplum://", "postgres://", 1)
 	uri, err := url.Parse(e.connstring)
 	if err != nil {
@@ -188,8 +194,15 @@ func (e Extractor) connect() (*pgx.Conn, error) {
 }
 
 func (e Extractor) Extract() (*doc.Doc, error) {
+	if e.Debug {
+		fmt.Println("  ... extraction initiated")
+	}
+
 	var empty *doc.Doc
 
+	if e.Debug {
+		fmt.Println("  ... connecting to database")
+	}
 	conn, err := e.connect()
 	if err != nil {
 		return empty, err
@@ -228,10 +241,18 @@ func (e Extractor) Extract() (*doc.Doc, error) {
 		return empty, err
 	}
 
+	if e.Debug {
+		fmt.Println("  ... extraction complete")
+	}
+
 	return e.doc, nil
 }
 
 func (e Extractor) extractDatabaseDetails() error {
+	if e.Debug {
+		fmt.Println("  ... extracting database details")
+	}
+
 	db := e.doc.Source()
 	sql := strings.ReplaceAll(DB_SQL, "[DATABASE]", db.Name.Physical)
 
@@ -245,24 +266,36 @@ func (e Extractor) extractDatabaseDetails() error {
 }
 
 func (e Extractor) extractEntities() error {
+	if e.Debug {
+		fmt.Println("  ... extracting database entities")
+	}
 	return forEachRecord(e.conn, e.SQL(ENTITY_SQL), func(record map[string]interface{}) error {
 		return mapEntityToDoc(record, e.doc)
 	})
 }
 
 func (e Extractor) extractRelationships() error {
+	if e.Debug {
+		fmt.Println("  ... extracting database relationships")
+	}
 	return forEachRecord(e.conn, e.SQL(RELATIONSHIP_SQL, "col.table_schema"), func(record map[string]interface{}) error {
 		return mapRelationshipToDoc(record, e.doc)
 	})
 }
 
 func (e Extractor) extractMaterializedViews() error {
+	if e.Debug {
+		fmt.Println("  ... extracting database materialized views")
+	}
 	return forEachRecord(e.conn, e.SQL(MATVIEW_SQL, "m.schemaname"), func(record map[string]interface{}) error {
 		return mapEntityToDoc(record, e.doc)
 	})
 }
 
 func (e Extractor) extractStatistics() error {
+	if e.Debug {
+		fmt.Println("  ... extracting database statistics")
+	}
 	return forEachRecord(e.conn, e.SQL(STATS_SQL, "schemaname"), func(record map[string]interface{}) error {
 		return mapEntityStats(record, e.doc)
 	})
