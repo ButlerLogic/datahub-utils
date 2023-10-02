@@ -66,7 +66,7 @@ func (e *Extractor) Run(ctx *Context) error {
 	remote := e.extractor()
 
 	if e.Debug {
-		remote.Debug = true
+		remote.SetDebugging(true)
 		fmt.Println("  extractor setup complete")
 	}
 
