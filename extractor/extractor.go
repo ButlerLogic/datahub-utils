@@ -4,7 +4,7 @@ import "dhs/extractor/doc"
 
 type Extractor interface {
 	SetConnectionString(str string) error
-	Extract() (*doc.Doc, error)
+	Extract(...string) (*doc.Doc, error)
 	Type() string
 	// Query(statement string) ([]map[string]interface{}, error)
 	ExpandJSONFields(*doc.Doc, bool, ...string)

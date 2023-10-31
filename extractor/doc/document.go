@@ -34,6 +34,14 @@ func (d *Doc) ApplySchema(schema *Schema) *Schema {
 	return currentSchema.Merge(schema)
 }
 
+func (d *Doc) ApplySchemaByName(schema string) *Schema {
+	s := &Schema{
+		Name: Name{Physical: schema},
+	}
+
+	return d.ApplySchema(s)
+}
+
 func (d *Doc) GetSchema(name string) (*Schema, error) {
 	id := strings.ToLower(name)
 	if schema, exists := d.schemas[id]; exists {

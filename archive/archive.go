@@ -103,6 +103,19 @@ func (a *Archive) HasDoc() bool {
 	return true
 }
 
+func (a *Archive) AddSchema(name string) {
+	_, err := a.doc.GetSchema(name)
+	if err != nil {
+		a.doc.ApplySchema(&doc.Schema{
+			Name: doc.Name{
+				Physical: name,
+			},
+			Relationships: make(map[string]*doc.Relationship),
+			Sets:          make(map[string]*doc.Set),
+		})
+	}
+}
+
 func (a *Archive) Query(statement string) (*RecordSet, error) {
 	conn, err := sql.Open("sqlite3", a.path)
 	if err != nil {
@@ -1050,6 +1063,12 @@ func (a *Archive) getSet(record map[string]interface{}) (*doc.Set, error) {
 		util.Dump(record)
 	}
 
+	if record["schema"] == nil {
+		schemas := a.doc.GetSchemas()
+		if len(schemas) > 0 {
+			record["schema"] = schemas[0].Name.Physical
+		}
+	}
 	schema, err := a.doc.GetSchema(record["schema"].(string))
 	if err != nil {
 		return &doc.Set{}, err

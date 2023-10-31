@@ -197,9 +197,13 @@ func (e Extractor) connect() (*pgx.Conn, error) {
 	return pgx.Connect(context.Background(), uri.String())
 }
 
-func (e Extractor) Extract() (*doc.Doc, error) {
+func (e Extractor) Extract(elements ...string) (*doc.Doc, error) {
 	if e.debug {
 		fmt.Println("  ... extraction initiated")
+	}
+
+	if len(elements) == 0 {
+		elements = []string{"entities", "views", "relationships", "stats", "info"}
 	}
 
 	var empty *doc.Doc
@@ -220,29 +224,39 @@ func (e Extractor) Extract() (*doc.Doc, error) {
 		Name: doc.Name{Physical: strings.Replace(uri.Path, "/", "", 1)},
 	})
 
-	err = e.extractEntities()
-	if err != nil {
-		return empty, err
+	if util.InSlice[string]("entities", elements) {
+		err = e.extractEntities()
+		if err != nil {
+			return empty, err
+		}
 	}
 
-	err = e.extractRelationships()
-	if err != nil {
-		return empty, err
+	if util.InSlice[string]("relationships", elements) {
+		err = e.extractRelationships()
+		if err != nil {
+			return empty, err
+		}
 	}
 
-	err = e.extractMaterializedViews()
-	if err != nil {
-		return empty, err
+	if util.InSlice[string]("views", elements) {
+		err = e.extractMaterializedViews()
+		if err != nil {
+			return empty, err
+		}
 	}
 
-	err = e.extractStatistics()
-	if err != nil {
-		return empty, err
+	if util.InSlice[string]("stats", elements) {
+		err = e.extractStatistics()
+		if err != nil {
+			return empty, err
+		}
 	}
 
-	err = e.extractDatabaseDetails()
-	if err != nil {
-		return empty, err
+	if util.InSlice[string]("info", elements) {
+		err = e.extractDatabaseDetails()
+		if err != nil {
+			return empty, err
+		}
 	}
 
 	if e.debug {
