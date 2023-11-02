@@ -188,6 +188,9 @@ func (e Extractor) connect() (*pgx.Conn, error) {
 		return &pgx.Conn{}, err
 	}
 
+	// pwd, _ := uri.User.Password()
+	// uri.User := url.UserPassword(uri.User.Username(), url.QueryEscape(pwd))
+
 	q := uri.Query()
 	if len(strings.TrimSpace(q.Get("sslmode"))) == 0 {
 		q.Set("sslmode", "prefer")
