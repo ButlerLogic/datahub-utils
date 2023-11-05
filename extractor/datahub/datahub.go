@@ -60,6 +60,10 @@ func (dh *Datahub) GetDoc() *doc.Doc {
 	return dh.doc
 }
 
+func (dh *Datahub) Source() string {
+	return dh.source
+}
+
 func (dh *Datahub) PopulateSources() error {
 	id := dh.source
 	cd, body, err := dh.get("/catalog/source/" + id + "?expand=sets")
@@ -394,6 +398,10 @@ func (dh *Datahub) getAuthToken() error {
 	return nil
 }
 
+func (dh *Datahub) Get(endpoint string) (int, []byte, error) {
+	return dh.get(endpoint)
+}
+
 func (dh *Datahub) get(endpoint string) (int, []byte, error) {
 	uri, err := url.Parse(dh.root + endpoint)
 	if err != nil {
@@ -441,24 +449,31 @@ func (dh *Datahub) get(endpoint string) (int, []byte, error) {
 func (dh *Datahub) send(method string, endpoint string, data interface{}) (int, interface{}, error) {
 	fmt.Printf("  HTTP %v %v\n", method, endpoint)
 
-	if method == "POST" {
-		util.DumpLog("./post.log", map[string]interface{}{
-			"endpoint": endpoint,
-			"data":     data,
-		})
-	}
+	// if method == "POST" {
+	// 	util.DumpLog("./post.log", map[string]interface{}{
+	// 		"endpoint": endpoint,
+	// 		"data":     data,
+	// 	})
+	// }
+
+	// if method == "PUT" {
+	// 	util.DumpLog("./put.log", map[string]interface{}{
+	// 		"endpoint": endpoint,
+	// 		"data":     data,
+	// 	})
+	// }
 
 	body, _ := json.Marshal(data)
 	var res interface{}
 
 	uri, err := url.Parse(dh.root + endpoint)
 	if err != nil {
-		return 0, res, err
+		return int(0), res, err
 	}
 
 	req, err := http.NewRequest(method, uri.String(), bytes.NewBuffer(body))
 	if err != nil {
-		return 0, res, err
+		return int(0), res, err
 	}
 
 	if dh.token != util.EmptyString {
@@ -470,7 +485,7 @@ func (dh *Datahub) send(method string, endpoint string, data interface{}) (int, 
 	client := http.Client{}
 	response, err := client.Do(req)
 	if err != nil {
-		return 0, res, err
+		return int(0), res, err
 	}
 	defer response.Body.Close()
 
@@ -487,7 +502,7 @@ func (dh *Datahub) send(method string, endpoint string, data interface{}) (int, 
 
 	content, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return 0, res, err
+		return int(0), res, err
 	}
 
 	if response.StatusCode != 200 && response.StatusCode != 201 {
@@ -514,8 +529,25 @@ func (dh *Datahub) post(endpoint string, data interface{}) (int, interface{}, er
 	return dh.send("POST", endpoint, data)
 }
 
+func (dh *Datahub) Post(endpoint string, data interface{}) (int, interface{}, error) {
+	return dh.send("POST", endpoint, data)
+}
+
+func (dh *Datahub) Put(endpoint string, data interface{}) (int, interface{}, error) {
+	return dh.put(endpoint, data)
+}
+
+// func (dh *Datahub) Put(endpoint string, data interface{}) (int, interface{}, error) {
+// 	fmt.Println(endpoint, data)
+// 	return dh.put(endpoint, data)
+// }
+
 func (dh *Datahub) put(endpoint string, data interface{}) (int, interface{}, error) {
 	return dh.send("PUT", endpoint, data)
+}
+
+func (dh *Datahub) Delete(endpoint string, data ...interface{}) (int, interface{}, error) {
+	return dh.delete(endpoint, data...)
 }
 
 func (dh *Datahub) delete(endpoint string, data ...interface{}) (int, interface{}, error) {

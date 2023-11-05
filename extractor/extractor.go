@@ -5,10 +5,12 @@ import "dhs/extractor/doc"
 type Extractor interface {
 	SetConnectionString(str string) error
 	Extract(...string) (*doc.Doc, error)
+	ExtractRelationships(...string) (map[string]interface{}, error)
 	Type() string
 	// Query(statement string) ([]map[string]interface{}, error)
 	ExpandJSONFields(*doc.Doc, bool, ...string)
 	SetDebugging(bool)
+	ApplySchemas(...string)
 }
 
 func GetAllSets(d *doc.Doc) []*doc.Set {

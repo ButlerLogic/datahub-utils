@@ -6,6 +6,7 @@ import (
 	"dhs/extractor/datahub"
 	"dhs/extractor/postgresql"
 	"dhs/util"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -65,6 +66,7 @@ func (e *Extractor) Run(ctx *Context) error {
 	}
 
 	remote := e.extractor()
+	// remote.ApplySchemas(e.Schemas...)
 
 	if e.Debug {
 		remote.SetDebugging(true)
@@ -81,9 +83,94 @@ func (e *Extractor) Run(ctx *Context) error {
 		fmt.Println("  begin extraction...")
 	}
 
+	dh, dherr := datahub.New(e.DatahubURL, e.Source, cache, e.APIKey)
+	if dherr != nil {
+		fmt.Println(dherr.Error())
+		os.Exit(1)
+	}
+
 	elements := []string{}
 	if e.RelsOnly {
-		elements = append(elements, "relationships")
+		rels, err := remote.ExtractRelationships()
+		if err != nil {
+			fmt.Println(err)
+			return err
+		}
+
+		fmt.Println("Extract rels from datahub")
+		err = dh.PopulateSources()
+		if err != nil {
+			fmt.Println(err)
+			return err
+		}
+
+		id := dh.Source()
+		uri := "/catalog/relationships/source/" + id
+		cd, body, err := dh.Get(uri)
+		if err != nil {
+			return err
+		}
+
+		if cd != 200 {
+			fmt.Println(string(body))
+			return errors.New(string(body))
+		}
+
+		var data map[string]interface{}
+		err = json.Unmarshal(body, &data)
+		if err != nil {
+			return err
+		}
+
+		outdated := []string{}
+		for _, rel := range data["relationships"].([]interface{}) {
+			if _, ok := rels[rel.(map[string]interface{})["name"].(map[string]interface{})["physical"].(string)]; !ok {
+				outdated = append(outdated, rel.(map[string]interface{})["id"].(string))
+			}
+		}
+
+		if len(outdated) > 0 {
+			uri := "/catalog/relationships"
+
+			cd, _, err := dh.Delete(uri, map[string]interface{}{
+				"relationships": outdated,
+			})
+
+			if err != nil {
+				fmt.Println(err.Error())
+				os.Exit(1)
+			}
+
+			if cd != 200 {
+				fmt.Printf("Error: HTTP Code %v received when attempting to delete relationships\n", cd)
+			} else {
+				fmt.Printf("  deleted %v relationship(s)\n", len(outdated))
+			}
+		}
+
+		if len(rels) > 0 {
+			relbody := make([]interface{}, 0)
+			for _, item := range rels {
+				relbody = append(relbody, item)
+			}
+
+			cd, _, err = dh.Put("/catalog/relationships", map[string]interface{}{
+				"relationships": relbody,
+			})
+
+			if err != nil {
+				fmt.Println(err.Error())
+				os.Exit(1)
+			}
+
+			if cd != 200 {
+				fmt.Printf("Error: HTTP Code %v received when attempting to delete relationships\n", cd)
+			} else {
+				fmt.Printf("  created/updated %v relationship(s)\n", len(rels))
+			}
+		}
+
+		os.Exit(0)
 	}
 
 	doc, err := remote.Extract(elements...)
@@ -127,7 +214,7 @@ func (e *Extractor) Run(ctx *Context) error {
 
 	start_sqlite := time.Now()
 
-	if util.InSlice[string]("enities", elements) {
+	if util.InSlice[string]("entities", elements) || util.InSlice[string]("relationships", elements) {
 		if e.Debug {
 			fmt.Println("  extracting data set metadata from source...")
 		}
@@ -169,60 +256,60 @@ func (e *Extractor) Run(ctx *Context) error {
 	fmt.Println("\nNow extracting from Datahub...")
 	start_datahub := time.Now()
 
-	dh, err := datahub.New(e.DatahubURL, e.Source, cache, e.APIKey)
-
-	if err == nil {
+	if dherr == nil {
 		if len(elements) == 1 && elements[0] == "relationships" {
 			for _, schema := range e.Schemas {
 				dh.GetDoc().ApplySchemaByName(schema)
-				diff := archive.CreateDiff()
+				util.Dump(dh.GetDoc().GetSchemas())
+				os.Exit(1)
+				// diff := archive.CreateDiff()
 
-				err = dh.PopulateRelationships(diff)
-				if err == nil {
-					rels := extractor.GetAllRelationships(dh.GetDoc())
-					fmt.Printf("  stashing %v relationship(s)...\n", len(rels))
+				// err = dh.PopulateRelationships(diff)
+				// if err == nil {
+				rels := extractor.GetAllRelationships(dh.GetDoc())
+				fmt.Printf("  stashing %v relationship(s)...\n", len(rels))
 
-					err = cache.UpsertRelationships("datahub", rels)
-					if err == nil {
-						if e.Debug {
-							fmt.Println("  diffing data relationships...")
-						}
-						reldiff, err := cache.DiffRelationships(diff)
-						if err == nil {
-							if e.Debug {
-								fmt.Println("  diffing individual relationship joins...")
-							}
-							joindiff, err := cache.DiffJoins(diff, reldiff)
-							if err == nil {
-								fmt.Printf("\nNow syncing with the Datahub...\n")
-								if e.DryRun {
-									if e.Debug {
-										fmt.Println("  running dry run...")
-									}
-									dh.DryRun(reldiff, e.Max, "relationship")
-									fmt.Println("")
-									dh.DryRun(joindiff, e.Max, "join")
-								} else {
-									if e.Debug {
-										fmt.Println("  syncing...")
-									}
-									dh.DryRun(reldiff, e.Max, "relationship")
-									dh.Commit(reldiff)
-									cache.ResetDatahub()
-									cache.ResetDatasource()
-								}
-							} else {
-								fmt.Println(err)
-							}
-						} else {
-							fmt.Println(err)
-						}
-					} else {
-						fmt.Println(err)
-					}
-				} else {
-					fmt.Println(err)
-				}
+				// err = cache.UpsertRelationships("datahub", rels)
+				// if err == nil {
+				// 	if e.Debug {
+				// 		fmt.Println("  diffing data relationships...")
+				// 	}
+				// 	reldiff, err := cache.DiffRelationships(diff)
+				// 	if err == nil {
+				// 		if e.Debug {
+				// 			fmt.Println("  diffing individual relationship joins...")
+				// 		}
+				// 		joindiff, err := cache.DiffJoins(diff, reldiff)
+				// 		if err == nil {
+				// 			fmt.Printf("\nNow syncing with the Datahub...\n")
+				// 			if e.DryRun {
+				// 				if e.Debug {
+				// 					fmt.Println("  running dry run...")
+				// 				}
+				// 				dh.DryRun(reldiff, e.Max, "relationship")
+				// 				fmt.Println("")
+				// 				dh.DryRun(joindiff, e.Max, "join")
+				// 			} else {
+				// 				if e.Debug {
+				// 					fmt.Println("  syncing...")
+				// 				}
+				// 				dh.DryRun(reldiff, e.Max, "relationship")
+				// 				dh.Commit(reldiff)
+				// 				cache.ResetDatahub()
+				// 				cache.ResetDatasource()
+				// 			}
+				// 		} else {
+				// 			fmt.Println(err)
+				// 		}
+				// 	} else {
+				// 		fmt.Println(err)
+				// 	}
+				// } else {
+				// 	fmt.Println(err)
+				// }
+				// } else {
+				// 	fmt.Println(err)
+				// }
 			}
 		} else {
 			if e.Debug {
@@ -333,7 +420,7 @@ func (e *Extractor) Run(ctx *Context) error {
 			}
 		}
 	} else {
-		fmt.Println(err.Error())
+		fmt.Println(dherr.Error())
 	}
 
 	end_datahub := time.Since(start_datahub)

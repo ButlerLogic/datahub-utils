@@ -1,7 +1,6 @@
 package util
 
 import (
-	"fmt"
 	"net/url"
 	"strings"
 )
@@ -20,7 +19,6 @@ func EncodeURL(root string, apikey ...string) string {
 			encodedURL := root[:base] + parts[0] + ":" + encodedPassword + root[at:]
 			root = encodedURL
 		}
-		fmt.Printf("Encoded URL: %v\n", root)
 	}
 
 	return root

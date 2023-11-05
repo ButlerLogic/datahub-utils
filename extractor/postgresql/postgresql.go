@@ -59,6 +59,14 @@ func (e Extractor) SetDebugging(ok bool) {
 // 	return result, err
 // }
 
+func (e Extractor) ApplySchemas(names ...string) {
+	for _, name := range names {
+		if !util.InSlice[string](name, e.schemas) {
+			e.schemas = append(e.schemas, name)
+		}
+	}
+}
+
 func (e Extractor) ExpandJSONFields(d *doc.Doc, skipviews bool, fields ...string) {
 	all := false
 	if len(fields) == 0 || util.InSlice[string]("*", fields) {
@@ -198,6 +206,70 @@ func (e Extractor) connect() (*pgx.Conn, error) {
 	}
 
 	return pgx.Connect(context.Background(), uri.String())
+}
+
+func (e Extractor) ExtractRelationships(sourcename ...string) (map[string]interface{}, error) {
+	rels := make(map[string]interface{})
+	sql := e.SQL(RELATIONSHIP_SQL, "col.table_schema")
+	source := ""
+	if len(sourcename) > 0 {
+		source = sourcename[0] + ":"
+	}
+
+	conn, err := e.connect()
+	if err != nil {
+		return rels, err
+	}
+	defer conn.Close(context.Background())
+
+	e.conn = conn
+
+	err = forEachRecord(conn, sql, func(record map[string]interface{}) error {
+		name := record["name"].(string)
+		parent_set := record["source_field_schema"].(string) + "." + source + record["source_field_entity"].(string)
+		child_set := record["foreign_field_schema"].(string) + "." + source + record["foreign_field_entity"].(string)
+
+		if _, ok := rels[name]; !ok {
+			rels[name] = map[string]interface{}{
+				"parent_set": parent_set,
+				"child_set":  child_set,
+				"name": map[string]interface{}{
+					"physical": name,
+					"logical":  name,
+				},
+				"referential_integrity": map[string]interface{}{
+					"on_update": strings.ToUpper(record["on_update"].(string)),
+					"on_delete": strings.ToUpper(record["on_delete"].(string)),
+				},
+				"items": make([]map[string]string, 0),
+			}
+		}
+
+		parent := parent_set + "." + record["source_field_name"].(string)
+		child := child_set + "." + record["foreign_field_name"].(string)
+		exists := false
+		for _, obj := range rels[name].(map[string]interface{})["items"].([]map[string]string) {
+			value, ok := obj["parent"]
+			if ok && value == parent {
+				value, ok = obj["child"]
+				if ok && value == child {
+					exists = true
+					break
+				}
+			}
+		}
+
+		if !exists {
+			rels[name].(map[string]interface{})["items"] = append(rels[name].(map[string]interface{})["items"].([]map[string]string), map[string]string{
+				"parent": parent,
+				"child":  child,
+			})
+		}
+
+		return nil
+	})
+
+	return rels, err
 }
 
 func (e Extractor) Extract(elements ...string) (*doc.Doc, error) {
