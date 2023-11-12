@@ -91,6 +91,7 @@ func (e *Extractor) Run(ctx *Context) error {
 
 	elements := []string{}
 	if e.RelsOnly {
+		fmt.Println("Extract rels from datasource")
 		rels, err := remote.ExtractRelationships()
 		if err != nil {
 			fmt.Println(err)
