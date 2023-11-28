@@ -257,20 +257,38 @@ func (dh *Datahub) PopulateItems(diff *archive.Diff) error {
 				item.Metadata = i["metadata"].(map[string]interface{})
 			}
 			if i["key"] != nil {
-				keys := i["key"].([]interface{})
-				// (map[string]interface{})
+				if _, ok := i["key"].([]interface{}); ok {
+					keys := i["key"].([]interface{})
+					// (map[string]interface{})
 
-				for _, k := range keys {
-					if k.(map[string]interface{})["is_key"].(bool) {
+					for _, k := range keys {
+						if k.(map[string]interface{})["is_key"].(bool) {
+							var t string
+							if k.(map[string]interface{})["primary"].(bool) {
+								t = "primary"
+							} else {
+								t = "foreign"
+							}
+
+							item.UpsertKey(&doc.Key{
+								Name:  k.(map[string]interface{})["name"].(string),
+								Type:  t,
+								Items: []string{item.Name.Physical},
+							})
+						}
+					}
+				} else {
+					k := i["key"].(map[string]interface{})
+					if k["is_key"].(bool) {
 						var t string
-						if k.(map[string]interface{})["primary"].(bool) {
+						if k["primary"].(bool) {
 							t = "primary"
 						} else {
 							t = "foreign"
 						}
 
 						item.UpsertKey(&doc.Key{
-							Name:  k.(map[string]interface{})["name"].(string),
+							Name:  k["name"].(string),
 							Type:  t,
 							Items: []string{item.Name.Physical},
 						})
