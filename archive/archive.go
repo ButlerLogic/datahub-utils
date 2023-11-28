@@ -325,7 +325,7 @@ func (a *Archive) UpsertItems(srctype string, items []*doc.Item) error {
 		if end > len(sql) {
 			end = len(sql)
 		}
-		chunk := sql[i:end]
+		chunk := sql[i:(i + end)]
 
 		isdh := ""
 		if srctype == "datahub" {
