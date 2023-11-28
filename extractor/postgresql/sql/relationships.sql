@@ -55,6 +55,8 @@ FROM information_schema.columns col
   ON pc.oid = pd.objoid
 WHERE [SCHEMA_FILTER]
   AND kcu.constraint_name IS NOT NULL
+  AND rel.column_name IS NOT NULL
+  AND col.column_name IS NOT NULL
 ORDER BY
   col.table_schema,
   col.table_name,
